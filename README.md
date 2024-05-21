@@ -1,3 +1,34 @@
+# Llama Recipes (Dev Ver.)
+
+## Installation
+Install FA2.
+```shell
+conda create -n llama python=11.3
+conda activate llama
+pip install torch packaging ninja
+pip install flash-attn --no-build-isolation
+```
+Install llama recipes following the official guide first. Make sure installing in dev mode: `pip install -e .`
+
+
+We modify llama arch and add fast fused kernels. Therefore, please install our `transformers` dev branch.
+
+Changes we made to llama 3 (changes are reflected in `transformers`): 
+- Add fused layer norms (implemented by nanotron)
+- Pre-norm -> post-norm
+- Add qk-layernorm
+```shell
+git clone https://github.com/cliangyu/transformers.git
+cd transformers
+git checkout -b dev_ly
+pip install -e .
+```
+Some TODOs:
+- Fused rotary embeddings
+- Fused SwiGLU
+
+Below are the original README of llama recipes.
+
 # Llama Recipes: Examples to get started using the Llama models from Meta
 <!-- markdown-link-check-disable -->
 The 'llama-recipes' repository is a companion to the [Meta Llama 3](https://github.com/meta-llama/llama3) models. The goal of this repository is to provide a scalable library for fine-tuning Meta Llama models, along with some example scripts and notebooks to quickly get started with using the models in a variety of use-cases, including fine-tuning for domain adaptation and building LLM-based applications with Meta Llama and other tools in the LLM ecosystem. The examples here showcase how to run Meta Llama locally, in the cloud, and on-prem. [Meta Llama 2](https://github.com/meta-llama/llama) is also supported in this repository. We highly recommend everyone to utilize [Meta Llama 3](https://github.com/meta-llama/llama3) due to its enhanced capabilities.

@@ -113,7 +113,7 @@ def main(**kwargs):
                 load_in_8bit=True if train_config.quantization else None,
                 device_map="auto" if train_config.quantization else None,
                 use_cache=use_cache,
-                attn_implementation="sdpa" if train_config.use_fast_kernels else None,
+                attn_implementation="flash_attention_2" if train_config.use_fast_kernels else None,
             )
         else:
             llama_config = LlamaConfig.from_pretrained(train_config.model_name)
@@ -127,7 +127,7 @@ def main(**kwargs):
             load_in_8bit=True if train_config.quantization else None,
             device_map="auto" if train_config.quantization else None,
             use_cache=use_cache,
-            attn_implementation="sdpa" if train_config.use_fast_kernels else None,
+            attn_implementation="flash_attention_2" if train_config.use_fast_kernels else None,
         )
 
     # Load the tokenizer and add special tokens
@@ -252,7 +252,7 @@ def main(**kwargs):
             lr=train_config.lr,
             momentum_dtype=torch.bfloat16,
             variance_dtype=torch.bfloat16,
-            use_kahan_summation=False,
+            use_kahan_summation=True, # set to True, see https://github.com/meta-llama/llama-recipes/issues/148
             weight_decay=train_config.weight_decay,
         )
     else:
