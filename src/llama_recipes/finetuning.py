@@ -26,7 +26,9 @@ from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 from llama_recipes.configs import fsdp_config as FSDP_CONFIG
 from llama_recipes.configs import train_config as TRAIN_CONFIG
 from llama_recipes.data.concatenator import ConcatDataset
+
 from llama_recipes.policies import AnyPrecisionAdamW, apply_fsdp_checkpointing
+from llama_recipes.policies import SophiaG
 
 from llama_recipes.utils import fsdp_auto_wrap_policy
 from llama_recipes.utils.config_utils import (
@@ -245,22 +247,36 @@ def main(**kwargs):
             **val_dl_kwargs,
         )
 
+    print(f'Optimizer: {train_config.optimizer}')
+
     # Initialize the optimizer and learning rate scheduler
-    if fsdp_config.pure_bf16 and fsdp_config.optimizer == "anyprecision":
-        optimizer = AnyPrecisionAdamW(
+    if train_config.optimizer == "adamw":
+        if fsdp_config.pure_bf16 and fsdp_config.optimizer == "anyprecision":
+            optimizer = AnyPrecisionAdamW(
+                model.parameters(),
+                lr=train_config.lr,
+                momentum_dtype=torch.bfloat16,
+                variance_dtype=torch.bfloat16,
+                use_kahan_summation=True, # set to True, see https://github.com/meta-llama/llama-recipes/issues/148
+            weight_decay=train_config.weight_decay,
+            )
+        else:
+            optimizer = optim.AdamW(
+                model.parameters(),
+                lr=train_config.lr,
+                weight_decay=train_config.weight_decay,
+            )
+    elif train_config.optimizer == "sophiag":
+        optimizer = SophiaG(
             model.parameters(),
             lr=train_config.lr,
-            momentum_dtype=torch.bfloat16,
-            variance_dtype=torch.bfloat16,
-            use_kahan_summation=True, # set to True, see https://github.com/meta-llama/llama-recipes/issues/148
             weight_decay=train_config.weight_decay,
+
+            **train_config.additional_optimizer_parameters
         )
     else:
-        optimizer = optim.AdamW(
-            model.parameters(),
-            lr=train_config.lr,
-            weight_decay=train_config.weight_decay,
-        )
+        raise NotImplementedError(f"Unknown optimizer \"{train_config.optimizer}\"")
+
     scheduler = StepLR(optimizer, step_size=1, gamma=train_config.gamma)
 
     # Start the training process
